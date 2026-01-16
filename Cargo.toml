@@ -8,27 +8,27 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped & Network Ready)
-# default-features = false REMOVES the c-kzg conflict.
-# We manually add back what we need.
+# 1. ALLOY (Stripped)
+# We keep default-features = false to avoid bloat/conflicts.
+# We explicitly add the features needed for Websockets and Contracts.
 alloy = { version = "1.4.3", default-features = false, features = [
     "std", 
     "reqwest", 
-    "pubsub",            # WS Subscriptions
-    "rpc-types-eth",     # TransactionRequest
-    "sol-types",         # sol! macro
-    "providers",         # ProviderBuilder
-    "transport-ws",      # WS Support
-    "transport-http",    # HTTP Support
-    "signer-local",      # Local Wallet
-    "network",           # Network traits
-    "contract",          # Needed for sol! RPC calls
-    "rpc-client"         # Needed for connections
+    "pubsub",            # Critical for WsConnect
+    "rpc-types-eth",
+    "sol-types",
+    "providers",
+    "transport-ws",      # Critical for WsConnect
+    "transport-http",
+    "signer-local",
+    "network",
+    "contract"
 ] }
 
-# 2. REVM (The Golden Standard v25)
-# v25 is stable. EVM is in the root. No experimental feature flags needed.
-revm = { version = "25.0.0", features = ["std", "serde", "optional_no_base_fee"] }
+# 2. REVM (Standard v25)
+# FIX: We REMOVED "default-features = false". 
+# Using defaults ensures 'EVM', 'db', and 'primitives' are all present.
+revm = "25.0.0"
 
 # 3. UTILITIES
 url = "2.5"
