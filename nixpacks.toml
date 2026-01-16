@@ -1,14 +1,19 @@
-# nixpacks.toml
+# nixpacks.toml - FULL OVERRIDE
 providers = ["rust"]
 
+[variables]
+    NIXPACKS_METRI_RUST_VERSION = "stable"
+    # This prevents Nixpacks from even TRYING to look for Node
+    NIXPACKS_NO_NODE = "1" 
+
 [phases.setup]
-nixPkgs = ["rustup", "gcc", "pkg-config", "openssl"]
+    nixPkgs = ["rustup", "gcc", "pkg-config", "openssl"]
+
+[phases.install]
+    cmds = ["rustup default stable"]
 
 [phases.build]
-cmds = [
-    "rustup default stable", 
-    "cargo build --release"
-]
+    cmds = ["cargo build --release"]
 
 [start]
-cmd = "./target/release/apex-singularity"
+    cmd = "./target/release/apex-singularity"
