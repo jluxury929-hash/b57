@@ -8,12 +8,15 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# --- 2026 MODERN STACK (Rust 1.92+) ---
-# We upgrade to the latest versions which are natively compatible.
-alloy = { version = "1.5.2", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
-revm = { version = "33.1", features = ["std", "serde", "optional_no_base_fee"] }
+# 1. ALLOY (Downgraded to 1.4.3 to match your registry)
+# This is the latest version available to your builder.
+alloy = { version = "1.4.3", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 
-# --- UTILITIES ---
+# 2. REVM (Modern 33.1)
+# We keep 'default-features = false' to ensure no c-kzg conflict occurs.
+revm = { version = "33.1", default-features = false, features = ["std", "serde", "optional_no_base_fee"] }
+
+# 3. UTILITIES
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
 core_affinity = "0.8"
@@ -29,7 +32,3 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = "symbols"
-
-# NO PATCH NEEDED. 
-# Alloy 1.5 and REVM 33 both use the modern c-kzg bindings, 
-# so the linker conflict resolves itself naturally.
