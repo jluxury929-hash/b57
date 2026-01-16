@@ -8,31 +8,33 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped to avoid conflict)
-# We disable default features to remove Alloy's copy of c-kzg.
-# We manually add 'rpc-client' and 'ws' for connectivity.
+# 1. ALLOY (Stripped & Network Ready)
+# default-features = false -> Kills Alloy's copy of c-kzg.
+# We manually add back everything else needed for a bot.
 alloy = { version = "1.4.3", default-features = false, features = [
     "std", 
     "reqwest", 
-    "pubsub",
-    "rpc-types-eth",
-    "sol-types",
-    "providers",
-    "transport-ws",
-    "transport-http",
-    "signer-local",
-    "network",
-    "contract",
-    "rpc-client" 
+    "pubsub",            # WebSocket
+    "rpc-types-eth",     # TransactionRequest
+    "sol-types",         # sol! macro
+    "providers",         # ProviderBuilder
+    "transport-ws",      # WS Support
+    "transport-http",    # HTTP Support
+    "signer-local",      # Wallet
+    "network",           # Network traits
+    "contract",          # Needed for sol! RPC calls
+    "rpc-client"         # Needed for connections
 ] }
 
-# 2. REVM (Stable v25)
-# We use version 25.0.0 with DEFAULT features enabled.
-# This ensures 'EVM' and 'db' are present.
-revm = "25.0.0"
+# 2. REVM (Standard v33)
+# We allow default features here. This ensures 'Evm' struct exists.
+# It brings 'c-kzg', but since Alloy doesn't have it, it's safe.
+revm = "33.1"
 
 # 3. UTILITIES
-# Removed revm-primitives to let revm manage its own versions.
+# Explicit primitives matching Revm 33 to prevent version mismatch
+revm-primitives = { version = "21.0", features = ["std", "serde"] }
+
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
