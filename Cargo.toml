@@ -8,30 +8,40 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped & Network Ready)
-# We disable default-features to ban Alloy's copy of 'c-kzg'.
-# We manually add back everything else needed for a bot.
+# 1. ALLOY (Modern 1.4)
+# We disable default features to prevent 'c-kzg' conflicts.
+# We manually add 'rpc-client' and 'ws' for WsConnect.
 alloy = { version = "1.4.3", default-features = false, features = [
     "std", 
     "reqwest", 
-    "pubsub",            # WebSocket
-    "rpc-types-eth",     # TransactionRequest
-    "sol-types",         # sol! macro
-    "providers",         # ProviderBuilder
-    "transport-ws",      # WS Support
-    "transport-http",    # HTTP Support
-    "signer-local",      # Wallet
-    "network",           # Network traits
-    "contract",          # Needed for sol! RPC calls
-    "rpc-client"         # Needed for WsConnect
+    "pubsub",
+    "rpc-types-eth",
+    "sol-types",
+    "providers",
+    "transport-ws",
+    "transport-http",
+    "signer-local",
+    "network",
+    "contract",
+    "rpc-client" # Ensures WsConnect is available
 ] }
 
-# 2. REVM (The "Golden Standard" v25)
-# v25 is stable and has 'EVM' in the root.
-# We disable defaults to be safe, then add std/serde.
-revm = { version = "25.0.0", default-features = false, features = ["std", "serde", "optional_no_base_fee"] }
+# 2. REVM (Modern 33.1)
+# "revm-interpreter" brings back the 'Evm' struct.
+# "portable" and "secp256k1" are standard.
+revm = { version = "33.1", default-features = false, features = [
+    "std", 
+    "serde", 
+    "optional_no_base_fee", 
+    "revm-interpreter", 
+    "portable", 
+    "secp256k1"
+] }
 
-# 3. UTILITIES
+# 3. REVM PRIMITIVES (Matching Version)
+revm-primitives = { version = "21.0", features = ["std", "serde"] }
+
+# 4. UTILITIES
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
