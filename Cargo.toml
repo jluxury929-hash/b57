@@ -8,31 +8,15 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped to avoid c-kzg conflict)
-# We manually add 'rpc-client' and transports to fix the connection.
-alloy = { version = "1.4.3", default-features = false, features = [
-    "std", 
-    "reqwest", 
-    "pubsub",            # Critical for WsConnect
-    "rpc-types-eth",
-    "sol-types",
-    "providers",
-    "transport-ws",      # Websocket support
-    "transport-http",    # HTTP support
-    "signer-local",
-    "network",
-    "contract",
-    "rpc-client"         # <--- Fixes connection logic
-] }
+# 1. ALLOY (Compatible v0.3)
+# This version works natively with newer REVM without conflicts.
+alloy = { version = "0.3.1", features = ["full", "node-bindings"] }
 
-# 2. REVM (Standard v25)
-# REMOVE "default-features = false".
-# We need defaults so the 'EVM' struct and 'db' module are compiled.
-# Since Alloy is stripped, this is safe.
-revm = "25.0.0"
+# 2. REVM (Latest v36)
+# Features enabled to ensure Evm and Database exist.
+revm = { version = "36.0.0", features = ["std", "serde", "optional_no_base_fee"] }
 
 # 3. UTILITIES
-# REMOVED revm-primitives (It causes version conflicts)
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
