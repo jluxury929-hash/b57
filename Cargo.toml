@@ -8,9 +8,8 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped)
-# We keep default-features = false to avoid bloat/conflicts.
-# We explicitly add the features needed for Websockets and Contracts.
+# 1. ALLOY (Stripped to avoid c-kzg conflict)
+# We manually add 'rpc-client' and transports to fix the connection.
 alloy = { version = "1.4.3", default-features = false, features = [
     "std", 
     "reqwest", 
@@ -18,19 +17,22 @@ alloy = { version = "1.4.3", default-features = false, features = [
     "rpc-types-eth",
     "sol-types",
     "providers",
-    "transport-ws",      # Critical for WsConnect
-    "transport-http",
+    "transport-ws",      # Websocket support
+    "transport-http",    # HTTP support
     "signer-local",
     "network",
-    "contract"
+    "contract",
+    "rpc-client"         # <--- Fixes connection logic
 ] }
 
 # 2. REVM (Standard v25)
-# FIX: We REMOVED "default-features = false". 
-# Using defaults ensures 'EVM', 'db', and 'primitives' are all present.
+# REMOVE "default-features = false".
+# We need defaults so the 'EVM' struct and 'db' module are compiled.
+# Since Alloy is stripped, this is safe.
 revm = "25.0.0"
 
 # 3. UTILITIES
+# REMOVED revm-primitives (It causes version conflicts)
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
