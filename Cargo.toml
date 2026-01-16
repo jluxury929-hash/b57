@@ -1,0 +1,26 @@
+[package]
+name = "apex-singularity"
+version = "206.13.0"
+edition = "2021"
+
+[[bin]]
+name = "apex-singularity"
+path = "main.rs"
+
+[dependencies]
+alloy = { version = "1.0", features = ["full", "pubsub", "rpc-types-eth"] }
+revm = { version = "8.0", features = ["std", "serde", "memory_db", "optional_no_base_fee"] }
+tokio = { version = "1.38", features = ["full", "parking_lot"] }
+core_affinity = "0.8"
+num_cpus = "1.16"
+anyhow = "1.0"
+dotenv = "0.15"
+colored = "2.1"
+futures-util = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = "fat"           # Merges all crates into one high-speed block
+codegen_units = 1     # Highest optimization possible
+panic = "abort"       # Eliminates code bloat
+strip = "symbols"     # Hides logic and reduces binary size
