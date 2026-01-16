@@ -5,15 +5,11 @@ edition = "2021"
 
 [[bin]]
 name = "apex-singularity"
-path = "src/main.rs"  # Ensure your main.rs is inside a 'src' folder!
+path = "main.rs"
 
 [dependencies]
-# 2026 Elite MEV Stack (Strictly Pinned for Rust 1.84 Compatibility)
-# The '=' sign is CRITICAL. It prevents downloading Alloy v1.5+ which breaks your compiler.
-alloy = { version = "=1.1.0", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
-revm = { version = "=8.0.0", features = ["std", "serde", "optional_no_base_fee"] }
-
-# Standard Utilities
+alloy = { version = "1.0", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
+revm = { version = "8.0", features = ["std", "serde", "memory_db", "optional_no_base_fee"] }
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
 core_affinity = "0.8"
@@ -26,12 +22,6 @@ futures-util = "0.3"
 [profile.release]
 opt-level = 3
 lto = "fat"
-codegen-units = 1
+codegen_units = 1
 panic = "abort"
 strip = "symbols"
-
-# --- THE ABSOLUTE COMPATIBILITY FIX ---
-[patch.crates-io]
-# This forces the entire dependency tree to use c-kzg v1.0.3.
-# This satisfies the 'links = ckzg' rule by only compiling ONE copy of the C library.
-c-kzg = { git = "https://github.com/ethereum/c-kzg-4844", tag = "v1.0.3" }
