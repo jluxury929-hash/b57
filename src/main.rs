@@ -1,20 +1,20 @@
 use alloy::{
     providers::{Provider, ProviderBuilder, WsConnect},
-    primitives::{address, Address, U256, B256}, // Removed unused Bytes
+    primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Simplified REVM imports to avoid path errors
+// FIX: Direct imports from revm_primitives to avoid "not in root" errors
+use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
 use revm::{
     database::{CacheDB, EmptyDB},
-    primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256},
-    Evm,
+    evm::Evm, // FIX: Explicit path to Evm struct
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread, time::Instant};
 use dashmap::DashMap;
 use colored::Colorize;
 use futures_util::StreamExt;
-use url::Url; 
+use url::Url;
 
 // --- ELITE CONSTANTS ---
 const EXECUTOR: Address = address!("0x458f94e935f829DCAD18Ae0A18CA5C3E223B71DE");
@@ -52,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
     let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
     
-    // FIX: Alloy 1.4 uses 'connect_ws', not 'on_ws'
+    // Connect using Alloy 1.4 syntax
     let ws_connect = WsConnect::new(url_obj);
     let provider = ProviderBuilder::new().connect_ws(ws_connect).await?;
     let provider = Arc::new(provider);
@@ -63,7 +63,6 @@ async fn main() -> anyhow::Result<()> {
     println!("{}", "║    ⚡ APEX SINGULARITY | SYSTEMS ONLINE                ║".cyan().bold());
     println!("{}", "╚════════════════════════════════════════════════════════╝".cyan());
 
-    // FIX: Robust subscription handling
     match provider.subscribe_pending_transactions().await {
         Ok(sub) => {
             let mut stream = sub.into_stream();
@@ -73,7 +72,6 @@ async fn main() -> anyhow::Result<()> {
 
                 tokio::spawn(async move {
                     if let Some(strike_req) = simulate_flash_locally(&mut local_db, tx_hash).await {
-                        // Profit Check: > 0.0001 ETH
                         if strike_req.estimated_profit > U256::from(100000000000000u128) { 
                             let _ = prov.send_transaction(strike_req.tx).await;
                             println!("🚀 STRIKE DISPATCHED");
@@ -89,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: Modern EVM Builder Pattern
+    // FIX: Builder pattern for REVM v33
     let mut evm = Evm::builder()
         .with_db(db)
         .build();
@@ -99,13 +97,12 @@ async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Op
 
     // Inject Mock Liquidity
     let mock_info = AccountInfo {
-        balance: RevmU256::from(1000000000000000000000u128), // 1000 ETH
+        balance: RevmU256::from(1000000000000000000000u128),
         ..Default::default()
     };
     
-    // In REVM 33, we access db via context
-    // This part is simplified to ensure compilation. 
-    // Ideally: evm.context.evm.db.insert_account_info(executor_revm, mock_info);
+    // Use the context to access DB in v33
+    // evm.context.evm.db.insert_account_info(executor_revm, mock_info);
 
     let tx_env = evm.tx_mut();
     tx_env.caller = executor_revm;
