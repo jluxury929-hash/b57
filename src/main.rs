@@ -1,30 +1,43 @@
 use alloy::{
-    providers::{Provider, ProviderBuilder},
-    transport::ws::WsConnect, // FIX: Correct import for stripped Alloy
+    providers::ProviderBuilder,
     primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Revm 33 Primitives (TxKind instead of TransactTo)
-use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
-// FIX: Revm 33 Structs (Evm instead of EVM)
+use alloy::transport_ws::WsConnect;
+
 use revm::{
+    Evm,
     database::{CacheDB, EmptyDB},
-    Evm, 
+    primitives::{AccountInfo, TxKind, Address as RevmAddress},
 };
-use std::{sync::Arc, net::TcpListener, io::Write, thread};
+
+use std::{
+    sync::Arc,
+    net::TcpListener,
+    io::Write,
+    thread,
+};
+
 use colored::Colorize;
 use futures_util::StreamExt;
 use url::Url;
 
-// --- ELITE CONSTANTS ---
-const EXECUTOR: Address = address!("0x458f94e935f829DCAD18Ae0A18CA5C3E223B71DE");
-const WETH: Address = address!("C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+// --- CONSTANTS ---
+const EXECUTOR: Address =
+    address!("0x458f94e935f829DCAD18Ae0A18CA5C3E223B71DE");
+
+const WETH: Address =
+    address!("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
 
 sol! {
     #[sol(rpc)]
     interface IApexOmega {
-        function startFlashStrike(address token, uint256 amount, bytes calldata userData) external;
+        function startFlashStrike(
+            address token,
+            uint256 amount,
+            bytes calldata userData
+        ) external;
     }
 }
 
@@ -37,10 +50,10 @@ pub struct ArbRequest {
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
-    // 1. HEALTH GUARD
+    // --- HEALTH CHECK ---
     thread::spawn(|| {
         let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
-        if let Ok(listener) = TcpListener::bind(format!("0.0.0.0:{}", port)) {
+        if let Ok(listener) = TcpListener::bind(format!("0.0.0.0:{port}")) {
             for stream in listener.incoming() {
                 if let Ok(mut s) = stream {
                     let _ = s.write_all(b"HTTP/1.1 200 OK\r\n\r\nOK");
@@ -49,57 +62,79 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    // 2. PROVIDER SETUP
-    let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
-    let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
-    
-    // FIX: Explicit WS Connection (Avoids on_builtin missing trait error)
-    let ws_connect = WsConnect::new(url_obj);
-    let provider = ProviderBuilder::new().on_ws(ws_connect).await?;
+    // --- PROVIDER (WS) ---
+    let rpc_url = std::env::var("ETH_RPC_WSS")
+        .expect("Missing ETH_RPC_WSS");
+
+    let url = Url::parse(&rpc_url)
+        .expect("Invalid WS URL");
+
+    let ws = WsConnect::new(url);
+    let provider = ProviderBuilder::new()
+        .connect_ws(ws)
+        .await?;
+
     let provider = Arc::new(provider);
-    
+
+    // --- REVM DB ---
     let shared_db = CacheDB::new(EmptyDB::default());
 
     println!("{}", "╔════════════════════════════════════════════════════════╗".cyan().bold());
     println!("{}", "║    ⚡ APEX SINGULARITY | SYSTEMS ONLINE                ║".cyan().bold());
     println!("{}", "╚════════════════════════════════════════════════════════╝".cyan());
 
+    // --- MEMPOOL SUB ---
     match provider.subscribe_pending_transactions().await {
         Ok(sub) => {
             let mut stream = sub.into_stream();
+
             while let Some(tx_hash) = stream.next().await {
-                let prov = Arc::clone(&provider);
-                let mut local_db = shared_db.clone(); 
+                let provider = Arc::clone(&provider);
+                let mut db = shared_db.clone();
 
                 tokio::spawn(async move {
-                    if let Some(strike_req) = simulate_flash_locally(&mut local_db, tx_hash).await {
-                        if strike_req.estimated_profit > U256::from(100000000000000u128) { 
-                            let _ = prov.send_transaction(strike_req.tx).await;
+                    if let Some(req) =
+                        simulate_flash_locally(&mut db, tx_hash).await
+                    {
+                        if req.estimated_profit
+                            > U256::from(100_000_000_000_000u128)
+                        {
+                            let _ = provider
+                                .send_transaction(req.tx)
+                                .await;
+
                             println!("🚀 STRIKE DISPATCHED");
                         }
                     }
                 });
             }
         }
-        Err(e) => eprintln!("Subscription failed: {:?}", e),
+        Err(e) => {
+            eprintln!("Subscription failed: {e:?}");
+        }
     }
-    
+
     Ok(())
 }
 
-async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: Revm 33 Builder Pattern
+// --- LOCAL REVM SIM ---
+async fn simulate_flash_locally(
+    db: &mut CacheDB<EmptyDB>,
+    _tx_hash: B256,
+) -> Option<ArbRequest> {
+
     let mut evm = Evm::builder()
         .with_db(db)
         .build();
 
-    let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
-    let weth_revm = RevmAddress::from_slice(WETH.as_slice());
+    let executor = RevmAddress::from_slice(EXECUTOR.as_slice());
+    let weth = RevmAddress::from_slice(WETH.as_slice());
 
-    // v33 Transaction Setup
-    let tx_env = evm.tx_mut();
-    tx_env.caller = executor_revm;
-    tx_env.transact_to = TxKind::Call(weth_revm);
-    
+    let tx = evm.tx_mut();
+    tx.caller = executor;
+    tx.transact_to = TxKind::Call(weth);
+
+    // Stub result
     None
 }
+
