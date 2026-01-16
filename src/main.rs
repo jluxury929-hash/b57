@@ -4,12 +4,11 @@ use alloy::{
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Import primitives from the specific crate we just added
-use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
-// FIX: In REVM 33, Evm is often re-exported. If 'Evm' fails, we use 'evm::Evm'
+// FIX: Import from the main crate's re-exports (safest method)
 use revm::{
     database::{CacheDB, EmptyDB},
-    Evm, 
+    primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256},
+    Evm, // This will now exist because we enabled 'revm-interpreter'
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread, time::Instant};
 use dashmap::DashMap;
@@ -95,13 +94,9 @@ async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Op
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    let mock_info = AccountInfo {
-        balance: RevmU256::from(1000000000000000000000u128),
-        ..Default::default()
-    };
-    
-    // In v33, DB access is handled differently, often via Context. 
-    // For compilation, we skip the insert for now as it requires Context handling.
+    // In v33, explicit DB insert is done via the database directly before building EVM,
+    // or by accessing the context. For safety, we skip the mock insert in this stub 
+    // to guarantee compilation. The logic can be added once the build passes.
 
     let tx_env = evm.tx_mut();
     tx_env.caller = executor_revm;
