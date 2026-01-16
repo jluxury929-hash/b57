@@ -27,7 +27,8 @@ codegen-units = 1
 panic = "abort"
 strip = "symbols"
 
-# --- THE FIX: FORCED DEPENDENCY ALIGNMENT ---
+# --- THE ABSOLUTE FIX: VERSION ALIGNMENT ---
 [patch.crates-io]
-# This forces the entire dependency tree to use a version compatible with both
-c-kzg = { git = "https://github.com/ethereum/c-kzg-4844", rev = "78170c0" }
+# Forces the entire tree to use the stable 1.0.3 release which 
+# is the 'Goldilocks' version for both Alloy 1.0 and REVM 8.0
+c-kzg = { git = "https://github.com/ethereum/c-kzg-4844", tag = "v1.0.3" }
