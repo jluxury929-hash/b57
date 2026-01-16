@@ -1,15 +1,15 @@
 use alloy::{
-    providers::{Provider, ProviderBuilder},
-    rpc::client::WsConnect, // FIX: Correct import path for Alloy 1.4
+    providers::{Provider, ProviderBuilder, WsConnect}, // FIX: Correct location in Alloy 1.4
     primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Use v25 primitives import style
+// FIX: Explicit primitive imports
+use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
+// FIX: Evm is available because we enabled 'revm-interpreter'
 use revm::{
-    db::{CacheDB, EmptyDB},
-    primitives::{AccountInfo, TransactTo, Address as RevmAddress, U256 as RevmU256},
-    EVM, // FIX: v25 uses uppercase EVM in the root
+    database::{CacheDB, EmptyDB},
+    Evm, 
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread};
 use colored::Colorize;
@@ -52,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
     let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
     
-    // FIX: Alloy 1.4 Connection Syntax
+    // FIX: Alloy 1.4 syntax
     let ws_connect = WsConnect::new(url_obj);
     let provider = ProviderBuilder::new().on_ws(ws_connect).await?;
     let provider = Arc::new(provider);
@@ -87,16 +87,17 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: v25 API Usage
-    let mut evm = EVM::new();
-    evm.database(db);
+    // FIX: Builder works with 'revm-interpreter' enabled
+    let mut evm = Evm::builder()
+        .with_db(db)
+        .build();
 
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // Setup Environment (v25 style)
-    evm.env.tx.caller = executor_revm;
-    evm.env.tx.transact_to = TransactTo::Call(weth_revm);
+    let tx_env = evm.tx_mut();
+    tx_env.caller = executor_revm;
+    tx_env.transact_to = TxKind::Call(weth_revm);
     
     None
 }
