@@ -8,31 +8,24 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped & Surgical)
-# We removed "full" to kill the 'c-kzg' conflict.
-# We manually re-enable the network/provider/rpc stack needed for the bot.
-alloy = { version = "1.4.3", default-features = false, features = [
-    "std", 
-    "pubsub",            # For WS Subscriptions
-    "rpc-types-eth",     # For TransactionRequest
-    "sol-types",         # For sol! macro
-    "providers",         # For ProviderBuilder
-    "transport-ws",      # For WebSocket
-    "transport-http",    # For HTTP
-    "signer-local",      # For signing txs
-    "network",           # For Network traits
-    "reqwest"            # HTTP client
-] }
+# 1. ALLOY (The KZG Owner)
+# We keep "full" features so Alloy manages EIP-4844 and the native CKZG bindings.
+alloy = { version = "1.4.3", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 
-# 2. REVM (Simulation Engine)
-# We enable 'revm-interpreter' so the 'Evm' struct exists.
-# We keep 'default-features = false' to keep the build clean.
-revm = { version = "33.1", default-features = false, features = ["std", "serde", "revm-interpreter", "optional_no_base_fee", "portable", "secp256k1"] }
+# 2. REVM (The Simulation Engine - Amputated but Functional)
+# default-features = false  <-- Kills c-kzg (Good!)
+# features = ...
+#   "revm-interpreter"      <-- BRINGS BACK 'Evm' STRUCT (Crucial fix)
+#   "portable"              <-- Optimizations
+#   "secp256k1"             <-- Standard precompiles (ecrecover)
+#   "std", "serde"          <-- Basics
+revm = { version = "33.1", default-features = false, features = ["std", "serde", "optional_no_base_fee", "revm-interpreter", "portable", "secp256k1"] }
 
-# 3. UTILITIES
-# We keep the explicit primitives import to be safe
+# 3. REVM PRIMITIVES
+# Safe import for types so we don't get "unresolved import" errors
 revm-primitives = { version = "21.0", features = ["std", "serde"] }
 
+# 4. UTILITIES
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
