@@ -8,40 +8,29 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Modern 1.4)
-# We disable default features to prevent 'c-kzg' conflicts.
-# We manually add 'rpc-client' and 'ws' for WsConnect.
+# 1. ALLOY (Stripped & Network Ready)
+# default-features = false REMOVES the c-kzg conflict.
+# We manually add back what we need.
 alloy = { version = "1.4.3", default-features = false, features = [
     "std", 
     "reqwest", 
-    "pubsub",
-    "rpc-types-eth",
-    "sol-types",
-    "providers",
-    "transport-ws",
-    "transport-http",
-    "signer-local",
-    "network",
-    "contract",
-    "rpc-client" # Ensures WsConnect is available
+    "pubsub",            # WS Subscriptions
+    "rpc-types-eth",     # TransactionRequest
+    "sol-types",         # sol! macro
+    "providers",         # ProviderBuilder
+    "transport-ws",      # WS Support
+    "transport-http",    # HTTP Support
+    "signer-local",      # Local Wallet
+    "network",           # Network traits
+    "contract",          # Needed for sol! RPC calls
+    "rpc-client"         # Needed for connections
 ] }
 
-# 2. REVM (Modern 33.1)
-# "revm-interpreter" brings back the 'Evm' struct.
-# "portable" and "secp256k1" are standard.
-revm = { version = "33.1", default-features = false, features = [
-    "std", 
-    "serde", 
-    "optional_no_base_fee", 
-    "revm-interpreter", 
-    "portable", 
-    "secp256k1"
-] }
+# 2. REVM (The Golden Standard v25)
+# v25 is stable. EVM is in the root. No experimental feature flags needed.
+revm = { version = "25.0.0", features = ["std", "serde", "optional_no_base_fee"] }
 
-# 3. REVM PRIMITIVES (Matching Version)
-revm-primitives = { version = "21.0", features = ["std", "serde"] }
-
-# 4. UTILITIES
+# 3. UTILITIES
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
