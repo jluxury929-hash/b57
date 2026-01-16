@@ -8,16 +8,31 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Verified v0.3.1)
-# This version is fully compatible with Revm 36. No conflicts.
-alloy = { version = "0.3.1", features = ["full", "node-bindings"] }
+# 1. ALLOY (Stripped to avoid conflict)
+# We disable default features to remove Alloy's copy of c-kzg.
+# We manually add 'rpc-client' and 'ws' for connectivity.
+alloy = { version = "1.4.3", default-features = false, features = [
+    "std", 
+    "reqwest", 
+    "pubsub",
+    "rpc-types-eth",
+    "sol-types",
+    "providers",
+    "transport-ws",
+    "transport-http",
+    "signer-local",
+    "network",
+    "contract",
+    "rpc-client" 
+] }
 
-# 2. REVM (Verified v36.0.0)
-# Enabling 'std' and 'serde' ensures standard functionality.
-# The 'Evm' struct is guaranteed to be available in this version.
-revm = { version = "36.0.0", features = ["std", "serde", "optional_no_base_fee"] }
+# 2. REVM (Stable v25)
+# We use version 25.0.0 with DEFAULT features enabled.
+# This ensures 'EVM' and 'db' are present.
+revm = "25.0.0"
 
 # 3. UTILITIES
+# Removed revm-primitives to let revm manage its own versions.
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
