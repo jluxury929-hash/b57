@@ -8,7 +8,7 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 2026 Elite MEV Stack
+# Standard 2026 HFT Stack
 alloy = { version = "1.1", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 revm = { version = "8.0", features = ["std", "serde", "optional_no_base_fee"] }
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
@@ -29,6 +29,6 @@ strip = "symbols"
 
 # --- THE ABSOLUTE FIX: C-KZG ALIGNMENT ---
 [patch.crates-io]
-# This forces the entire dependency tree to use c-kzg v1.0.3.
-# This tag is a permanent reference that satisfies the 'links = ckzg' rule.
+# This surgical override forces all dependencies to use c-kzg v1.0.3
+# This satisfies the 'links = ckzg' rule by only compiling ONE copy of the C library.
 c-kzg = { git = "https://github.com/ethereum/c-kzg-4844", tag = "v1.0.3" }
