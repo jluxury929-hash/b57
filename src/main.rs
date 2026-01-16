@@ -1,14 +1,16 @@
 use alloy::{
-    providers::{Provider, ProviderBuilder}, 
+    providers::{Provider, ProviderBuilder},
+    transport::ws::WsConnect, // FIX: Correct import for stripped Alloy
     primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Revm v25 Imports
+// FIX: Revm 33 Primitives (TxKind instead of TransactTo)
+use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
+// FIX: Revm 33 Structs (Evm instead of EVM)
 use revm::{
-    db::{CacheDB, EmptyDB},
-    primitives::{AccountInfo, TransactTo, Address as RevmAddress, U256 as RevmU256},
-    EVM, // v25 uses uppercase struct
+    database::{CacheDB, EmptyDB},
+    Evm, 
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread};
 use colored::Colorize;
@@ -49,9 +51,11 @@ async fn main() -> anyhow::Result<()> {
 
     // 2. PROVIDER SETUP
     let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
+    let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
     
-    // FIX: Alloy 1.4 'on_builtin' avoids import errors
-    let provider = ProviderBuilder::new().on_builtin(rpc_url.as_str()).await?;
+    // FIX: Explicit WS Connection (Avoids on_builtin missing trait error)
+    let ws_connect = WsConnect::new(url_obj);
+    let provider = ProviderBuilder::new().on_ws(ws_connect).await?;
     let provider = Arc::new(provider);
     
     let shared_db = CacheDB::new(EmptyDB::default());
@@ -84,24 +88,18 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: v25 API Usage
-    let mut evm = EVM::new();
-    evm.database(db);
+    // FIX: Revm 33 Builder Pattern
+    let mut evm = Evm::builder()
+        .with_db(db)
+        .build();
 
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // Setup Environment (v25)
-    evm.env.tx.caller = executor_revm;
-    evm.env.tx.transact_to = TransactTo::Call(weth_revm);
+    // v33 Transaction Setup
+    let tx_env = evm.tx_mut();
+    tx_env.caller = executor_revm;
+    tx_env.transact_to = TxKind::Call(weth_revm);
     
-    // v25 Explicit Insert
-    let mock_info = AccountInfo {
-        balance: RevmU256::from(1000000000000000000000u128),
-        ..Default::default()
-    };
-    // Safe unwrap because database is set
-    evm.db.as_mut().unwrap().insert_account_info(executor_revm, mock_info);
-
     None
 }
