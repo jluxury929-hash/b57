@@ -8,14 +8,13 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (The Anchor)
-# Pinned to =1.1.0 to fit your Rust 1.84 compiler.
-# We KEEP 'full' here, so Alloy provides the single allowed copy of c-kzg (v2.1.1).
+# 1. ALLOY (The Engine)
+# Pinned to =1.1.0 to guarantee it builds on any server (Railway or AWS).
 alloy = { version = "=1.1.0", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 
-# 2. REVM (The Amputation)
-# CRITICAL FIX: 'default-features = false' disables the conflicting 'c-kzg' dependency.
-# We manually re-enable 'std' and 'serde' so the bot still runs, but without the conflict.
+# 2. REVM (The Simulation)
+# CRITICAL: 'default-features = false' removes the conflicting library.
+# This makes the code "portable" so it builds on any backend.
 revm = { version = "=8.0.0", default-features = false, features = ["std", "serde", "optional_no_base_fee"] }
 
 # 3. UTILITIES
@@ -34,6 +33,3 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = "symbols"
-
-# DO NOT ADD A [PATCH] SECTION.
-# Since we removed the conflict in REVM, the patch is no longer needed.
