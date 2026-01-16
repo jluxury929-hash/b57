@@ -11,12 +11,14 @@ path = "src/main.rs"
 # 1. ALLOY (Network)
 alloy = { version = "1.4.3", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 
-# 2. REVM (Simulation - Amputated)
+# 2. REVM (Simulation)
+# We disable default features to avoid c-kzg conflict.
 revm = { version = "33.1", default-features = false, features = ["std", "serde", "optional_no_base_fee"] }
+# FIX: Direct access to primitives to stop "unresolved import" errors
+revm-primitives = { version = "31.0", features = ["std", "serde"] }
 
 # 3. UTILITIES
-# Added 'url' to fix the "unresolved import" error
-url = "2.5"
+url = "2.5" # Added for WS parsing
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
 core_affinity = "0.8"
