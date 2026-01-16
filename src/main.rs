@@ -1,14 +1,15 @@
 use alloy::{
-    providers::{Provider, ProviderBuilder}, // No WsConnect needed with on_builtin
+    providers::{Provider, ProviderBuilder},
+    transport::ws::WsConnect, // FIX: Correct import path for Stripped Alloy
     primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: v25 Primitives
+// FIX: Revm v25 Standard Imports
 use revm::{
     db::{CacheDB, EmptyDB},
     primitives::{AccountInfo, TransactTo, Address as RevmAddress, U256 as RevmU256},
-    EVM, // FIX: v25 uses uppercase EVM in the root
+    EVM, 
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread};
 use colored::Colorize;
@@ -49,10 +50,11 @@ async fn main() -> anyhow::Result<()> {
 
     // 2. PROVIDER SETUP
     let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
+    let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
     
-    // FIX: 'on_builtin' automatically handles WS or HTTP based on the URL scheme.
-    // This avoids needing to import the specific WsConnect struct.
-    let provider = ProviderBuilder::new().on_builtin(rpc_url.as_str()).await?;
+    // FIX: Explicit Websocket connection
+    let ws_connect = WsConnect::new(url_obj);
+    let provider = ProviderBuilder::new().on_ws(ws_connect).await?;
     let provider = Arc::new(provider);
     
     let shared_db = CacheDB::new(EmptyDB::default());
@@ -85,17 +87,23 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: v25 API Usage
+    // FIX: Standard v25 EVM Construction
     let mut evm = EVM::new();
     evm.database(db);
 
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // Setup Environment (v25 style)
+    // Setup Environment
     evm.env.tx.caller = executor_revm;
     evm.env.tx.transact_to = TransactTo::Call(weth_revm);
     
-    // Logic placeholder...
+    // v25 explicit account insertion
+    let mock_info = AccountInfo {
+        balance: RevmU256::from(1000000000000000000000u128),
+        ..Default::default()
+    };
+    evm.db.as_mut().unwrap().insert_account_info(executor_revm, mock_info);
+
     None
 }
