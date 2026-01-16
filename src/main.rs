@@ -1,15 +1,15 @@
 use alloy::{
-    providers::{Provider, ProviderBuilder},
-    rpc::client::WsConnect, // FIX: Correct import path for WsConnect
+    providers::{Provider, ProviderBuilder, WsConnect}, // FIX: Correct WsConnect location
     primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Use v25 primitives import style
+// FIX: Safe Primitives Import
+use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
+// FIX: REVM 33 standard import (Evm exists here)
 use revm::{
-    db::{CacheDB, EmptyDB},
-    primitives::{AccountInfo, TransactTo, Address as RevmAddress, U256 as RevmU256},
-    EVM, // FIX: v25 uses uppercase EVM
+    database::{CacheDB, EmptyDB},
+    Evm, 
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread};
 use colored::Colorize;
@@ -52,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
     let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
     
-    // FIX: Using correct WsConnect from rpc::client
+    // FIX: Correct Alloy 1.4 Connection Syntax
     let ws_connect = WsConnect::new(url_obj);
     let provider = ProviderBuilder::new().on_ws(ws_connect).await?;
     let provider = Arc::new(provider);
@@ -87,19 +87,18 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: v25 API Usage
-    let mut evm = EVM::new();
-    evm.database(db);
+    // FIX: Builder works because REVM defaults are ON
+    let mut evm = Evm::builder()
+        .with_db(db)
+        .build();
 
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // Setup Environment (v25 style)
-    evm.env.tx.caller = executor_revm;
-    evm.env.tx.transact_to = TransactTo::Call(weth_revm);
+    // v33 Transaction Setup
+    let tx_env = evm.tx_mut();
+    tx_env.caller = executor_revm;
+    tx_env.transact_to = TxKind::Call(weth_revm);
     
-    // In v25, we can insert directly into DB if needed, or use evm.database()
-    // db.insert_account_info(...)
-
     None
 }
