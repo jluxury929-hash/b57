@@ -8,13 +8,28 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Compatible v0.3)
-# This version works natively with newer REVM without conflicts.
-alloy = { version = "0.3.1", features = ["full", "node-bindings"] }
+# 1. ALLOY (Stripped & Compatible)
+# default-features = false -> Kills Alloy's c-kzg (Fixes Conflict)
+# We add "contract" for macros and "rpc-client" for connections.
+alloy = { version = "1.4.3", default-features = false, features = [
+    "std", 
+    "reqwest", 
+    "pubsub",
+    "rpc-types-eth",
+    "sol-types",
+    "providers",
+    "transport-ws",
+    "transport-http",
+    "signer-local",
+    "network",
+    "contract",
+    "rpc-client"
+] }
 
-# 2. REVM (Latest v36)
-# Features enabled to ensure Evm and Database exist.
-revm = { version = "36.0.0", features = ["std", "serde", "optional_no_base_fee"] }
+# 2. REVM (Standard v25)
+# Defaults enabled -> Brings 'EVM', 'db', and 'c-kzg'.
+# Since Alloy is stripped, this is the ONLY copy of c-kzg. Safe.
+revm = "25.0.0"
 
 # 3. UTILITIES
 url = "2.5"
