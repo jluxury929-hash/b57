@@ -8,18 +8,31 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Network)
-alloy = { version = "1.4.3", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
+# 1. ALLOY (Stripped & Surgical)
+# We removed "full" to kill the 'c-kzg' conflict.
+# We manually re-enable the network/provider/rpc stack needed for the bot.
+alloy = { version = "1.4.3", default-features = false, features = [
+    "std", 
+    "pubsub",            # For WS Subscriptions
+    "rpc-types-eth",     # For TransactionRequest
+    "sol-types",         # For sol! macro
+    "providers",         # For ProviderBuilder
+    "transport-ws",      # For WebSocket
+    "transport-http",    # For HTTP
+    "signer-local",      # For signing txs
+    "network",           # For Network traits
+    "reqwest"            # HTTP client
+] }
 
-# 2. REVM (Simulation)
-# CRITICAL FIX: We re-enable 'revm-interpreter' so the Evm struct exists.
-# We keep default-features = false to ensure c-kzg remains banned.
-revm = { version = "33.1", default-features = false, features = ["std", "serde", "optional_no_base_fee", "revm-interpreter", "portable", "secp256k1"] }
-
-# Version 21.0 matches REVM 33.1
-revm-primitives = { version = "21.0", features = ["std", "serde"] }
+# 2. REVM (Simulation Engine)
+# We enable 'revm-interpreter' so the 'Evm' struct exists.
+# We keep 'default-features = false' to keep the build clean.
+revm = { version = "33.1", default-features = false, features = ["std", "serde", "revm-interpreter", "optional_no_base_fee", "portable", "secp256k1"] }
 
 # 3. UTILITIES
+# We keep the explicit primitives import to be safe
+revm-primitives = { version = "21.0", features = ["std", "serde"] }
+
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
