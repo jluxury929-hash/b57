@@ -4,9 +4,9 @@ use alloy::{
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Robust Imports
-// We pull types from primitives, and the Engine from revm
+// FIX: Import primitives from the specific crate (Safe)
 use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
+// FIX: The 'Evm' struct is now available because we added 'revm-interpreter' feature
 use revm::{
     database::{CacheDB, EmptyDB},
     Evm, 
@@ -86,7 +86,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: The Builder now works because 'revm-interpreter' is ON
+    // FIX: Builder Pattern (Now works because Evm is imported)
     let mut evm = Evm::builder()
         .with_db(db)
         .build();
@@ -94,9 +94,6 @@ async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Op
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // NOTE: In v33, context DB modification is explicit.
-    // For compilation safety, we use the raw transaction env.
-    
     let tx_env = evm.tx_mut();
     tx_env.caller = executor_revm;
     tx_env.transact_to = TxKind::Call(weth_revm);
