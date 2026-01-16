@@ -8,17 +8,17 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Network)
+# 1. ALLOY
 alloy = { version = "1.4.3", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 
 # 2. REVM (Simulation)
-# We disable default features to avoid c-kzg conflict.
 revm = { version = "33.1", default-features = false, features = ["std", "serde", "optional_no_base_fee"] }
-# FIX: Direct access to primitives to stop "unresolved import" errors
-revm-primitives = { version = "31.0", features = ["std", "serde"] }
+
+# FIX: Version 21.0 matches what REVM 33.1 actually uses.
+revm-primitives = { version = "21.0", features = ["std", "serde"] }
 
 # 3. UTILITIES
-url = "2.5" # Added for WS parsing
+url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
 core_affinity = "0.8"
