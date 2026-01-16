@@ -8,13 +8,16 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Network Layer)
+# 1. ALLOY (Network)
 alloy = { version = "1.4.3", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 
-# 2. REVM (Simulation Layer)
-# FIX: Re-enable 'revm-interpreter' and 'portable' so the Evm struct exists.
-# We keep default-features = false to BAN c-kzg.
+# 2. REVM (Simulation)
+# CRITICAL FIX: We added "revm-interpreter", "portable", and "secp256k1".
+# This brings back the 'Evm' struct logic without bringing back the conflicting 'c-kzg' library.
 revm = { version = "33.1", default-features = false, features = ["std", "serde", "optional_no_base_fee", "revm-interpreter", "portable", "secp256k1"] }
+
+# Version 21.0 matches REVM 33.1
+revm-primitives = { version = "21.0", features = ["std", "serde"] }
 
 # 3. UTILITIES
 url = "2.5"
