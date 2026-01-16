@@ -8,42 +8,35 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped & Network Ready)
-# default-features = false -> Kills Alloy's copy of c-kzg.
-# We manually add back everything else needed for a bot.
+# --- ALLOY (network / rpc / ws) ---
 alloy = { version = "1.4.3", default-features = false, features = [
-    "std", 
-    "reqwest", 
-    "pubsub",            # WebSocket
-    "rpc-types-eth",     # TransactionRequest
-    "sol-types",         # sol! macro
-    "providers",         # ProviderBuilder
-    "transport-ws",      # WS Support
-    "transport-http",    # HTTP Support
-    "signer-local",      # Wallet
-    "network",           # Network traits
-    "contract",          # Needed for sol! RPC calls
-    "rpc-client"         # Needed for connections
+    "std",
+    "reqwest",
+    "pubsub",
+    "rpc-types-eth",
+    "sol-types",
+    "providers",
+    "transport-ws",
+    "transport-http",
+    "signer-local",
+    "network",
+    "contract",
+    "rpc-client"
 ] }
 
-# 2. REVM (Standard v33)
-# We allow default features here. This ensures 'Evm' struct exists.
-# It brings 'c-kzg', but since Alloy doesn't have it, it's safe.
+# --- REVM (EVM simulation) ---
 revm = "33.1"
 
-# 3. UTILITIES
-# Explicit primitives matching Revm 33 to prevent version mismatch
-revm-primitives = { version = "21.0", features = ["std", "serde"] }
-
-url = "2.5"
+# --- UTILITIES ---
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
-dashmap = "6.0"
-core_affinity = "0.8"
-num_cpus = "1.16"
+url = "2.5"
 anyhow = "1.0"
 dotenv = "0.15"
 colored = "2.1"
 futures-util = "0.3"
+dashmap = "6.0"
+core_affinity = "0.8"
+num_cpus = "1.16"
 
 [profile.release]
 opt-level = 3
@@ -51,3 +44,4 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = "symbols"
+
