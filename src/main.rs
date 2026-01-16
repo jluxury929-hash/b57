@@ -4,11 +4,12 @@ use alloy::{
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Import from the main crate's re-exports (safest method)
+// FIX: Direct primitives import
+use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
+// FIX: The 'Evm' struct is now available because we enabled 'revm-interpreter' in Cargo.toml
 use revm::{
     database::{CacheDB, EmptyDB},
-    primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256},
-    Evm, // This will now exist because we enabled 'revm-interpreter'
+    Evm, 
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread, time::Instant};
 use dashmap::DashMap;
@@ -86,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: Builder Pattern
+    // FIX: Builder Pattern (Now works because Evm is imported)
     let mut evm = Evm::builder()
         .with_db(db)
         .build();
@@ -94,9 +95,11 @@ async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Op
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // In v33, explicit DB insert is done via the database directly before building EVM,
-    // or by accessing the context. For safety, we skip the mock insert in this stub 
-    // to guarantee compilation. The logic can be added once the build passes.
+    // Account injection stub (Requires Context in v33, skipped for compilation safety)
+    let _mock_info = AccountInfo {
+        balance: RevmU256::from(1000000000000000000000u128),
+        ..Default::default()
+    };
 
     let tx_env = evm.tx_mut();
     tx_env.caller = executor_revm;
