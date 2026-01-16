@@ -1,14 +1,14 @@
 use alloy::{
-    providers::{Provider, ProviderBuilder}, 
+    providers::{Provider, ProviderBuilder, WsConnect},
     primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Import from revm directly. It exports the correct primitives version (v19).
+// REVM 36 Imports
 use revm::{
     db::{CacheDB, EmptyDB},
-    primitives::{AccountInfo, TransactTo, Address as RevmAddress, U256 as RevmU256},
-    EVM, // FIX: This now exists because default features are ON
+    primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256},
+    Evm,
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread};
 use colored::Colorize;
@@ -49,10 +49,11 @@ async fn main() -> anyhow::Result<()> {
 
     // 2. PROVIDER SETUP
     let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
+    let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
     
-    // FIX: 'on_builtin' is the smartest way to connect. 
-    // It handles WS/HTTP automatically and doesn't require importing WsConnect manually.
-    let provider = ProviderBuilder::new().on_builtin(rpc_url.as_str()).await?;
+    // Alloy 0.3 Syntax
+    let ws = WsConnect::new(url_obj);
+    let provider = ProviderBuilder::new().on_ws(ws).await?;
     let provider = Arc::new(provider);
     
     let shared_db = CacheDB::new(EmptyDB::default());
@@ -85,17 +86,17 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: Standard v25 EVM Construction
-    let mut evm = EVM::new();
-    evm.database(db);
+    // REVM 36 Builder
+    let mut evm = Evm::builder()
+        .with_db(db)
+        .build();
 
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // Setup Environment (v25 uses TransactTo)
-    evm.env.tx.caller = executor_revm;
-    evm.env.tx.transact_to = TransactTo::Call(weth_revm);
+    let tx_env = evm.tx_mut();
+    tx_env.caller = executor_revm;
+    tx_env.transact_to = TxKind::Call(weth_revm);
     
-    // Logic placeholder...
     None
 }
