@@ -1,15 +1,15 @@
 use alloy::{
-    providers::{Provider, ProviderBuilder, WsConnect}, // FIX: Correct WsConnect location
+    providers::{Provider, ProviderBuilder},
+    rpc::client::WsConnect, // FIX: Correct import path for Alloy 1.4
     primitives::{address, Address, U256, B256},
     rpc::types::eth::TransactionRequest,
     sol,
 };
-// FIX: Safe Primitives Import
-use revm_primitives::{AccountInfo, TxKind, Address as RevmAddress, U256 as RevmU256};
-// FIX: REVM 33 standard import (Evm exists here)
+// FIX: Use v25 primitives import style
 use revm::{
-    database::{CacheDB, EmptyDB},
-    Evm, 
+    db::{CacheDB, EmptyDB},
+    primitives::{AccountInfo, TransactTo, Address as RevmAddress, U256 as RevmU256},
+    EVM, // FIX: v25 uses uppercase EVM in the root
 };
 use std::{sync::Arc, net::TcpListener, io::Write, thread};
 use colored::Colorize;
@@ -52,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     let rpc_url = std::env::var("ETH_RPC_WSS").expect("Missing ETH_RPC_WSS");
     let url_obj = Url::parse(&rpc_url).expect("Invalid WebSocket URL");
     
-    // FIX: Correct Alloy 1.4 Connection Syntax
+    // FIX: Alloy 1.4 Connection Syntax
     let ws_connect = WsConnect::new(url_obj);
     let provider = ProviderBuilder::new().on_ws(ws_connect).await?;
     let provider = Arc::new(provider);
@@ -87,18 +87,16 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn simulate_flash_locally(db: &mut CacheDB<EmptyDB>, _tx_hash: B256) -> Option<ArbRequest> {
-    // FIX: Builder works because REVM defaults are ON
-    let mut evm = Evm::builder()
-        .with_db(db)
-        .build();
+    // FIX: v25 API Usage
+    let mut evm = EVM::new();
+    evm.database(db);
 
     let executor_revm = RevmAddress::from_slice(EXECUTOR.as_slice());
     let weth_revm = RevmAddress::from_slice(WETH.as_slice());
 
-    // v33 Transaction Setup
-    let tx_env = evm.tx_mut();
-    tx_env.caller = executor_revm;
-    tx_env.transact_to = TxKind::Call(weth_revm);
+    // Setup Environment (v25 style)
+    evm.env.tx.caller = executor_revm;
+    evm.env.tx.transact_to = TransactTo::Call(weth_revm);
     
     None
 }
