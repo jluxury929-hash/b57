@@ -8,31 +8,29 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped Down)
-# We disable defaults to remove Alloy's copy of 'c-kzg'.
-# We manually add back ONLY the network/provider features needed for the bot.
+# 1. ALLOY (Stripped + Contract Support)
+# We disable default-features to ban 'c-kzg'.
+# We ADD "contract" so the sol! macro works.
 alloy = { version = "1.4.3", default-features = false, features = [
     "std", 
     "reqwest", 
-    "pubsub",            # WebSocket
-    "rpc-types-eth",     # standard eth types
-    "sol-types",         # sol! support
+    "pubsub",            # WS Subscriptions
+    "rpc-types-eth",     # TransactionRequest
+    "sol-types",         # sol! macro
     "providers",         # ProviderBuilder
-    "transport-ws",      # WS support
-    "transport-http",    # HTTP support
-    "signer-local",      # Local Wallet signing
-    "network"            # Network abstractions
+    "transport-ws",      # WS Support
+    "transport-http",    # HTTP Support
+    "signer-local",      # Local Wallet
+    "network",           # Network Traits
+    "contract"           # <--- FIXED: Added this for sol! macro
 ] }
 
-# 2. REVM (Standard)
-# We use defaults. This brings back 'Evm', 'AccountInfo', and 'c-kzg'.
-# Since Alloy gave up its 'c-kzg', there is no conflict.
-revm = { version = "33.1", features = ["std", "serde", "optional_no_base_fee"] }
+# 2. REVM (The "Golden Standard" v25)
+# v25 is stable, has 'EVM' in the root, and works reliably.
+# We disable defaults to be safe, then add std/serde.
+revm = { version = "25.0.0", default-features = false, features = ["std", "serde", "optional_no_base_fee"] }
 
-# 3. REVM PRIMITIVES
-revm-primitives = { version = "21.0", features = ["std", "serde"] }
-
-# 4. UTILITIES
+# 3. UTILITIES
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
