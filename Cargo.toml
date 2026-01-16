@@ -8,29 +8,33 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 1. ALLOY (Stripped + Contract Support)
-# We disable default-features to ban 'c-kzg'.
-# We ADD "contract" so the sol! macro works.
+# 1. ALLOY (Stripped & Network Ready)
+# We disable default-features to ban Alloy's copy of 'c-kzg'.
+# We manually add back everything else needed for a bot.
 alloy = { version = "1.4.3", default-features = false, features = [
     "std", 
     "reqwest", 
-    "pubsub",            # WS Subscriptions
+    "pubsub",            # WebSocket
     "rpc-types-eth",     # TransactionRequest
     "sol-types",         # sol! macro
     "providers",         # ProviderBuilder
     "transport-ws",      # WS Support
     "transport-http",    # HTTP Support
-    "signer-local",      # Local Wallet
-    "network",           # Network Traits
-    "contract"           # <--- FIXED: Added this for sol! macro
+    "signer-local",      # Wallet
+    "network",           # Network traits
+    "contract",          # Needed for sol! RPC calls
+    "rpc-client"         # Needed for WsConnect
 ] }
 
-# 2. REVM (The "Golden Standard" v25)
-# v25 is stable, has 'EVM' in the root, and works reliably.
-# We disable defaults to be safe, then add std/serde.
-revm = { version = "25.0.0", default-features = false, features = ["std", "serde", "optional_no_base_fee"] }
+# 2. REVM (Standard)
+# We use defaults. This ensures 'Evm' and 'Database' exist.
+# It brings 'c-kzg', but since Alloy doesn't have it, there is no conflict.
+revm = { version = "33.1", features = ["std", "serde", "optional_no_base_fee"] }
 
 # 3. UTILITIES
+# Explicit primitives to avoid version mismatch
+revm-primitives = { version = "21.0", features = ["std", "serde"] }
+
 url = "2.5"
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
 dashmap = "6.0"
