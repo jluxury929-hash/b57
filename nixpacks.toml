@@ -1,8 +1,14 @@
+# nixpacks.toml
+providers = ["rust"]
+
 [phases.setup]
-nixPkgs = ["...", "rustup", "gcc", "pkg-config", "openssl"]
+nixPkgs = ["rustup", "gcc", "pkg-config", "openssl"]
 
 [phases.build]
-cmds = ["rustup default stable", "cargo build --release"]
+cmds = [
+    "rustup default stable", 
+    "cargo build --release"
+]
 
 [start]
 cmd = "./target/release/apex-singularity"
