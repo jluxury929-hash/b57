@@ -8,7 +8,7 @@ name = "apex-singularity"
 path = "src/main.rs"
 
 [dependencies]
-# 2026 High-Performance Stack
+# 2026 Elite MEV Stack
 alloy = { version = "1.1", features = ["full", "pubsub", "rpc-types-eth", "sol-types"] }
 revm = { version = "8.0", features = ["std", "serde", "optional_no_base_fee"] }
 tokio = { version = "1.38", features = ["full", "parking_lot"] }
@@ -27,8 +27,8 @@ codegen-units = 1
 panic = "abort"
 strip = "symbols"
 
-# --- THE ABSOLUTE FIX: CKZG ALIGNMENT ---
+# --- THE ABSOLUTE FIX: CKZG VERSION ALIGNMENT ---
 [patch.crates-io]
-# This forces every crate in your project to use the same c-kzg version.
-# Version 1.0.3 is the 'stable bridge' that both Alloy and REVM can accept.
+# This forces the entire dependency tree (including Alloy 1.1) 
+# to use v1.0.3, which resolves the duplicate 'links = ckzg' error.
 c-kzg = { git = "https://github.com/ethereum/c-kzg-4844", tag = "v1.0.3" }
